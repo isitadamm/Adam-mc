@@ -1,27 +1,39 @@
+
 name: Build Minecraft Mod
+
 on:
   workflow_dispatch:
   push:
     branches: [main]
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      - name: Merge batch folders into one project
-        run: |
-          for d in batch*/; do cp -a "$d." .; done
-          ls -la
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 9.2.1
-      - name: Build
-        run: gradle build -x test --no-daemon
+
+      - name: Build mod
+        run: |
+          cd adam-camera/adam-camera
+          gradle build -x test --no-daemon
+
+          mkdir -p "$GITHUB_WORKSPACE/out"
+
+          find build/libs -maxdepth 1 -name '*.jar' \
+            ! -name '*-sources.jar' \
+            -exec cp {} "$GITHUB_WORKSPACE/out/" \;
+
       - uses: actions/upload-artifact@v4
         with:
-          name: mod-jar
-          path: build/libs/adam-client-3.0.jar
+          name: adam-camera
+          path: out/*.jar
