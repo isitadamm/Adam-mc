@@ -1,47 +1,27 @@
-
-name: build
-
+name: Build Minecraft Mod
 on:
-  push:
   workflow_dispatch:
-
+  push:
+    branches: [main]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v5
+      - name: Merge batch folders into one project
+        run: |
+          for d in batch*/; do cp -a "$d." .; done
+          ls -la
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
-
-      - uses: gradle/actions/setup-gradle@v5
-
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.2.1
       - name: Build
-        run: |
-          if [ -f settings.gradle ] || [ -f settings.gradle.kts ]; then
-            DIR="."
-          else
-            FILE=$(find . -type f \( -name settings.gradle -o -name settings.gradle.kts \) -not -path './.git/*' | head -n 1)
-            if [ -z "$FILE" ]; then
-              echo "ERROR: Could not find Gradle settings file"
-              exit 1
-            fi
-            DIR=$(dirname "$FILE")
-          fi
-
-          echo "Project folder: $DIR"
-          cd "$DIR"
-
-          gradle build --no-daemon
-
-          mkdir -p "$GITHUB_WORKSPACE/out"
-
-          find build/libs -name '*.jar' ! -name '*-sources.jar' -exec cp {} "$GITHUB_WORKSPACE/out/" \;
-
+        run: gradle build -x test --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: adam-camera
-          path: out/*.jar
+          name: mod-jar
+          path: build/libs/adam-client-3.0.jar
